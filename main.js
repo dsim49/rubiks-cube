@@ -17,15 +17,15 @@ canv.height = canv_container.clientHeight
 console.log(canv_container.clientWidth);
 console.log(canv_container.clientHeight);
 
-canv.addEventListener("mousedown", mouse_function);
-document.addEventListener("mouseup", mouse_function);
+canv.addEventListener("mousedown", switch_mouse_id);
+document.addEventListener("mouseup", switch_mouse_id); // We want it to register a mouseup ANYWHERE on the screen
 canv.addEventListener("mousemove", mousemove_function);
 
 // Global variables that are not constant
 let mousedownID = -1;  //Global ID of mouse down interval
-let waiting = -1; // If set to anything other than -1, this will prevent the big function from running.
+let glob_waiting = -1; // If set to anything other than -1, this will prevent the big function from running.
 
-function mouse_function(event)
+async function switch_mouse_id(event)
 {
     if (event.type == "mousedown")
     {
@@ -41,10 +41,11 @@ function mouse_function(event)
 
 function mousemove_function(event)
 {
-    if (mousedownID != -1 && waiting == -1)
+    if (mousedownID != -1 && glob_waiting == -1)
     {
+        console.log(glob_waiting);
         // Test async code here
-        asdf();
+        wait_30hz();
         // Big function here
         disp_debug(event);
     }
@@ -64,13 +65,8 @@ function disp_debug(event)
 }
 
 // Debug
-async function asdf()
+async function wait_30hz() 
 {
-    count = 0
-    while (count < 10e7)
-    {
-        count = count + 1;
-    }
-    alert("Done!");
+    glob_waiting = 1;
+    setTimeout(() => {glob_waiting = -1;}, 1000/30);
 }
-

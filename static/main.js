@@ -27,23 +27,13 @@ class CubeData {
         this.xbound = xbound;
         this.ybound = ybound;
     }
+}
 
-    update(upX, upY)
-    {
-        this.posX += upX;
-        this.posY += upY;
-        if (this.posX < -1*this.xbound) {
-            this.posX = -1*this.xbound;
-        }
-        if (this.posY < -1*this.ybound) {
-            this.posY = -1*this.ybound;
-        }
-        if (this.posX > this.xbound) {
-            this.posX = this.xbound;
-        }
-        if (this.posY > this.ybound) {
-            this.posY = this.ybound;
-        }
+class CommandData {
+    constructor(type, xmov, ymov) {
+        this.type = type;
+        this.movement_amountX = xmov;
+        this.movement_amountY = ymov;
     }
 }
 
@@ -77,8 +67,6 @@ async function switch_mouse_id(event)
         globals.prevX = NaN;
         globals.prevY = NaN;
     }
-
-    // disp_debug(event)
 }
 
 function mousemove_function(event)
@@ -87,11 +75,11 @@ function mousemove_function(event)
     {
         wait_30hz();
         // Big function here
-        disp_debug(event);
+        generate_cmd(event);
     }
 }
 
-function disp_debug(event)
+function generate_cmd(event)
 {
     // The first debug box is the event type
     debug_blocks[0].getElementsByTagName("p")[0].textContent = event.type;
@@ -112,10 +100,44 @@ function disp_debug(event)
     debug_blocks[1].getElementsByTagName("p")[0].textContent = "X: " + movement_amountX;
     debug_blocks[1].getElementsByTagName("p")[1].textContent = "Y: " + movement_amountY;
 
-    cube_data.update(movement_amountX, movement_amountY);
+    // Form the command (use JSON format)
+    the_cmd = new CommandData(event.type, movement_amountX, movement_amountY);
+
+    // Call the command (use JSON format)
+    fetch('/process_json', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ state: cube_data, command: the_cmd}),
+    })
+    .then(response => {
+        
+        // Debug
+        console.log("Raw response: ", response)
+
+        // Convert response to json, i THINK
+        return response.json()
+    })
+    .then(data => {
+        
+        // Debug
+        console.log('Response from server:', data);
+        
+        // Set the data back to the cube_data object
+        cube_data = JSON.parse(JSON.stringify(data));
+
+        // If you're feeling lucky:
+        // cube_data = data;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+
+    // Draw the returned data from the command call
     drawCube();
 
-    // This is done after everything else in disp_debug
+    // This is done after everything else in generate_cmd
     globals.prevX = event.clientX;
     globals.prevY = event.clientY;
 
@@ -126,7 +148,7 @@ function disp_debug(event)
 async function wait_30hz() 
 {
     globals.glob_waiting = 1;
-    setTimeout(() => {globals.glob_waiting = -1;}, 1000/30);
+    setTimeout(() => {globals.glob_waiting = -1;}, 1000/60);
 }
 
 function drawCube()

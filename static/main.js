@@ -21,11 +21,97 @@ class Globals {
 }
 
 class CubeData {
-    constructor(xbound, ybound) {
-        this.posX = 0;
-        this.posY = 0;
-        this.xbound = xbound;
-        this.ybound = ybound;
+    constructor(n) {
+        this.num_sides = n;
+
+        this.faces = [
+            new outerFace(n, "px"),
+            new outerFace(n, "py"),
+            new outerFace(n, "pz"),
+            new outerFace(n, "nx"),
+            new outerFace(n, "ny"),
+            new outerFace(n, "nz"),
+        ]
+    }
+
+    // In addition, add "layer" objects between which the various polygon objects will be rearranged every time a move is made.
+
+    // In addition, add "camera position" data attributes here.
+}
+
+class outerFace {
+    constructor(n, face_string) {
+        // Face string is px, py, pz, nx, ny, or nz
+        this.polygons = []
+        for (let i = -n+1; i < n; i = i+2) {
+            for (let j = -n+1; j < n; j = j+2) {
+                this.polygons.push(new Polygon(i, j, face_string));
+            }
+        }
+
+        // Next time, figure out a new data attribute to associate either with this object class, or the "outer layer" when I put those in, 
+        // that keeps track of whether the polygons in that "outer face" are visible or not, based on the camera position (theta, phi etc.)
+    }
+}
+
+class Polygon {
+    constructor(n, center1, center2, face_string) {
+        if (face_string[1] == "x")
+        {
+            let dir1 = "y";
+            let dir2 = "z";
+        }
+        else if (face_string[1] == "y")
+        {
+            let dir1 = "x";
+            let dir2 = "z";
+        }
+        else if (face_string[1] == "z")
+        {
+            let dir1 = "x";
+            let dir2 = "y";
+        }
+
+        let center = {x: NaN, y: NaN, z: NaN};
+        center[face_string[1]] = n;
+        center[dir1] = center1;
+        center[dir2] = center2;
+        
+        if (face_string[0] == "n")
+        {
+            center[face_string[1]] = center[face_string[1]]*-1;
+        }
+
+        codes = {x: 0, y: 0, z: 0};
+        codes[dir1] = 1;
+        codes[dir2] = 2;
+
+        this.coordinates = [];
+        for (let i of [-1, 1]) {
+            for (let j of [-1, 1]) {
+                coords = {x: NaN, y: NaN, z: NaN};
+                for (let l of ["x", "y", "z"]) {
+                    if (codes[l] == 0) {
+                        coords[l] = center[l];
+                    }
+                    else if (codes[l] == 1) {
+                        coords[l] = center[l] + i;
+                    }
+                    else {
+                        coords[l] = center[l] + j;
+                    }
+                }
+                this.coordinates.push(new Coordinate(coords['x'], coords['y'], coords['z']));
+            }
+        }
+    }
+}
+
+class Coordinate {
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 }
 

@@ -9,11 +9,11 @@ Note: this was rewritten from scratch and does the same thing as the previous (o
 
 ### Main heirarchy of elements
 
-1) The overall CubeData structure contains OuterFace structs (x6)
-2) OuterFace struct contains n^2 Polygon objects
-    - Also contains a boolean variable to indicate whether it is visible or not (javascript side)
-3) Polygon struct contains Coordinate structs (x4)
+1) The overall CubeData structure contains OuterFace information (x6) and Polygons (6*n^2)
+2) OuterFace information consists of which outer faces are visible.
+3) Each Polygon struct contains Coordinate structs (x4)
     - Also contains three "layer" attributes so C++ can quickly determine which rotational faces it is a part of.
+    - Also contains an "outer_face" attribute to javascript can quickly determine which of the 6 faces it belongs to.
 4) Coordinate struct contains x, y, and z attributes (ints)
     - Additionally contains zero-scales canv_x and canv_y coordinates
 
@@ -32,3 +32,11 @@ Note: this was rewritten from scratch and does the same thing as the previous (o
 ### Stretch Goals
 
 1) Reduce the base class of the cube to only that which javascript cares about (scaled coordinates). Omit more than half the data in this way. To compensate, optimize back end to be able to do the necessary inverse calculations as well as forward calculations, in the same amount of time.
+
+### When a turn happens
+
+1) asdf
+2) asdf
+3) ???
+4) Recalculate layer attributes of polygons from the new coordinates
+5) Recalculate outer_face attribute of polygons from the new coordinates

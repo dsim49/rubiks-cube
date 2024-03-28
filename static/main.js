@@ -24,37 +24,51 @@ class CubeData {
     constructor(n) {
         this.num_sides = n;
 
-        this.faces = [
-            new outerFace(n, "px"),
-            new outerFace(n, "py"),
-            new outerFace(n, "pz"),
-            new outerFace(n, "nx"),
-            new outerFace(n, "ny"),
-            new outerFace(n, "nz"),
-        ]
+        this.polygons = []
+
+        this.outerFace(n, "px");
+        this.outerFace(n, "py");
+        this.outerFace(n, "pz");
+        this.outerFace(n, "nx");
+        this.outerFace(n, "ny");
+        this.outerFace(n, "nz");
+
+        this.outerface_info = {
+            px: false,
+            py: false,
+            pz: false,
+            nx: false,
+            ny: false,
+            nz: false,
+        }
     }
 
     // In addition, add "layer" objects between which the various polygon objects will be rearranged every time a move is made.
 
     // In addition, add "camera position" data attributes here.
-}
 
-class outerFace {
-    constructor(n, face_string) {
-        // Face string is px, py, pz, nx, ny, or nz
-        this.polygons = []
+    outerFace(n, face_string)
+    {
         for (let i = -n+1; i < n; i = i+2) {
             for (let j = -n+1; j < n; j = j+2) {
                 this.polygons.push(new Polygon(i, j, face_string));
             }
         }
+    }
 
-        this.isVisible = false;
+    readVisibility()
+    {
+    }
+
+    readScaledCoords()
+    {
     }
 }
 
 class Polygon {
     constructor(n, center1, center2, face_string) {
+        this.outer_face = face_string;
+
         if (face_string[1] == "x")
         {
             let dir1 = "y";
@@ -103,6 +117,76 @@ class Polygon {
                 this.coordinates.push(new Coordinate(coords['x'], coords['y'], coords['z']));
             }
         }
+    }
+
+    readOuterLayer()
+    {
+        // The coordinate value shared by all four coordinates, gives the outer layer.
+        // The other two layers are calcluated by the other two coordinates.
+        // This is really only useful for the C++ side of things since we literally know
+        // the outer layer since the constructor takes it as an argument, but 
+        // incidentally, this is also the easiest start to the readLayers() function
+        // just below.
+
+        cands = {
+            x: true,
+            y: true,
+            z: true,
+        }
+
+        for (let item of this.coordinates)
+        {
+            max_abs = Math.max(Math.abs(item.x), Math.abs(item.y), Math.abs(item.z));
+            if (Math.abs(item.x) != max_abs) {
+                cands.x = false;
+            }
+            if (Math.abs(item.y) != max_abs) {
+                cands.y = false;
+            }
+            if (Math.abs(item.z) != max_abs) {
+                cands.z = false;
+            }
+            if (Object.values(cands).filter((x) => x == true).length == 1)
+            {
+                break;
+            }
+        }
+
+        for (const [key,value] of Object.entries(cands))
+        {
+            if (value == true)
+            {
+                return key;
+            }
+        }
+    }
+
+    readLayers()
+    {
+        local_outerlayer = this.readOuterLayer();
+        local_n = this.coordinates[0][local_outerlayer];
+
+        // We can consider the positive faces to be layer "1" and the negative faces to be layer "n"
+        // Using this formula
+        min_x = local_n;
+        min_y = local_n;
+        min_z = local_n;
+        for (let item of this.coordinates)
+        {
+            if (item.x < min_x) {
+                min_x = item.x;
+            }
+            if (item.y < min_y) {
+                min_y = item.y;
+            }
+            if (item.z < min_z) {
+                min_z = item.z;
+            }
+        }
+
+        this.x_layer = Math.max(1, (local_n-min_x)/2);
+        this.y_layer = Math.max(1, (local_n-min_y)/2);
+        this.z_layer = Math.max(1, (local_n-min_z)/2);
     }
 }
 

@@ -49,8 +49,7 @@ class outerFace {
             }
         }
 
-        // Next time, figure out a new data attribute to associate either with this object class, or the "outer layer" when I put those in, 
-        // that keeps track of whether the polygons in that "outer face" are visible or not, based on the camera position (theta, phi etc.)
+        this.isVisible = false;
     }
 }
 

@@ -17,27 +17,34 @@ def process_json():
     # Return the new state (use the command and original state to calculate this)
     def update_state(curr_state, cmd):
         
-        new_state = curr_state.copy()
-        new_state_X = new_state['posX']
-        new_state_Y = new_state['posY']
+        testing = True
 
-        new_state_X += command['movement_amountX']
-        new_state_Y += command['movement_amountY']
+        if testing:
+            return curr_state
+        else:
+            # new_state = curr_state.copy()
+            # new_state_X = new_state['posX']
+            # new_state_Y = new_state['posY']
+
+            # new_state_X += command['movement_amountX']
+            # new_state_Y += command['movement_amountY']
+            
+            # # Keep within the bounds
+            # if new_state_X < -1*new_state['xbound']:
+            #     new_state_X = -1*new_state['xbound']
+            # if new_state_X > new_state['xbound']:
+            #     new_state_X = new_state['xbound']
+            # if new_state_Y < -1*new_state['ybound']:
+            #     new_state_Y = -1*new_state['ybound']
+            # if new_state_Y > new_state['ybound']:
+            #     new_state_Y = new_state['ybound']
+
+            # # Update new_state values
+            # new_state['posX'] = new_state_X
+            # new_state['posY'] = new_state_Y
+            # return new_state
+
         
-        # Keep within the bounds
-        if new_state_X < -1*new_state['xbound']:
-            new_state_X = -1*new_state['xbound']
-        if new_state_X > new_state['xbound']:
-            new_state_X = new_state['xbound']
-        if new_state_Y < -1*new_state['ybound']:
-            new_state_Y = -1*new_state['ybound']
-        if new_state_Y > new_state['ybound']:
-            new_state_Y = new_state['ybound']
-
-        # Update new_state values
-        new_state['posX'] = new_state_X
-        new_state['posY'] = new_state_Y
-        return new_state
 
     new_state = update_state(current_state, command)
     

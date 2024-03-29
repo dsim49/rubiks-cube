@@ -51,7 +51,7 @@ class CubeData {
     {
         for (let i = -n+1; i < n; i = i+2) {
             for (let j = -n+1; j < n; j = j+2) {
-                this.polygons.push(new Polygon(i, j, face_string));
+                this.polygons.push(new Polygon(n, i, j, face_string));
             }
         }
     }
@@ -232,7 +232,7 @@ document.addEventListener("mouseup", switch_mouse_id); // We want it to register
 canv.addEventListener("mousemove", mousemove_function);
 
 let globals = new Globals();
-let cube_data = new CubeData(canv.width / 2, canv.height / 2);
+let cube_data = new CubeData(3);
 
 async function switch_mouse_id(event)
 {

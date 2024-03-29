@@ -40,3 +40,11 @@ Note: this was rewritten from scratch and does the same thing as the previous (o
 3) ???
 4) Recalculate layer attributes of polygons from the new coordinates
 5) Recalculate outer_face attribute of polygons from the new coordinates
+
+### Rotation forumlas
+
+- Using Rodrigues' rotation formula for three arbitrary corners of the cube. Obtain new 3d vector form for each of those.
+- Interpret orientation angles (3) from those 3 3-d vectors
+- Compute the new 2d coordinates of every coordinate object using orientation angles.
+- Note: need to continuously store the 3d coordinate values for those three arbitrary corners
+- Note: coordinates are going to be based upon a camera located on -z axis pointing towards +z, with the cube placed at the world origin.

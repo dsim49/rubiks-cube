@@ -41,6 +41,22 @@ class CubeData {
             ny: false,
             nz: false,
         }
+
+        // Orientation data
+        this.theta = 45;
+        this.phi = 30;
+        this.gamma = 0;
+
+        // This is the "zoom" factor for isometric mode
+        // Note: base is 600 wide for a side-on isometric view
+        // This is equivalent to 100 pixels per unit length (radially).
+        // Convention in this code is that one square is 2x2 (in terms of unit length).
+        this.base_scale = Math.floor(300/n);
+        this.zoom = 1;
+
+        // This is the zoom factor for perspective mode. It is not a zoom, but a distance.
+        // Note: the initial value will have to be found by trial and error.
+        this.rho = 2*n;
     }
 
     // In addition, add "layer" objects between which the various polygon objects will be rearranged every time a move is made.
@@ -59,7 +75,34 @@ class CubeData {
     readVisibility()
     {
         for (let item of Object.keys(this.outerface_info)) {
-            this.outerface_info[item] = true;
+            let obs_vec = {
+                x: Math.cos(this.phi)*Math.cos(this.theta),
+                y: Math.cos(this.phi)*Math.sin(this.theta),
+                z: Math.sin(this.phi),
+            }
+            let normal_vec = {
+                x: 0,
+                y: 0,
+                z: 0,
+            }
+            if (item[0] == "p") {
+                normal_vec[item[1]] = 1;
+            }
+            else if (item[0] == "n") {
+                normal_vec[item[1]] = -1;
+            }
+            else {
+                console.log("error: readVisibility: unrecognized face_string argument");
+            }
+
+            // Dot product
+            dp = (obs_vec.x*normal_vec.x + obs_vec.y*normal_vec.y + obs_vec.z*normal_vec.z);
+            if (dp > 0) {
+                this.outerface_info[item] = true;
+            }
+            else {
+                this.outerface_info[item] = false;
+            }
         }
     }
 
@@ -79,20 +122,25 @@ class Polygon {
     constructor(n, center1, center2, face_string) {
         this.outer_face = face_string;
 
+        let dir1 = ""; let dir2 = "";
+
         if (face_string[1] == "x")
         {
-            let dir1 = "y";
-            let dir2 = "z";
+            dir1 = "y";
+            dir2 = "z";
         }
         else if (face_string[1] == "y")
         {
-            let dir1 = "x";
-            let dir2 = "z";
+            dir1 = "x";
+            dir2 = "z";
         }
         else if (face_string[1] == "z")
         {
-            let dir1 = "x";
-            let dir2 = "y";
+            dir1 = "x";
+            dir2 = "y";
+        }
+        else {
+            console.log("error: face_string not recognized: ", face_string);
         }
 
         let center = {x: NaN, y: NaN, z: NaN};
@@ -105,14 +153,14 @@ class Polygon {
             center[face_string[1]] = center[face_string[1]]*-1;
         }
 
-        codes = {x: 0, y: 0, z: 0};
+        let codes = {x: 0, y: 0, z: 0};
         codes[dir1] = 1;
         codes[dir2] = 2;
 
         this.coordinates = [];
         for (let i of [-1, 1]) {
             for (let j of [-1, 1]) {
-                coords = {x: NaN, y: NaN, z: NaN};
+                let coords = {x: NaN, y: NaN, z: NaN};
                 for (let l of ["x", "y", "z"]) {
                     if (codes[l] == 0) {
                         coords[l] = center[l];
@@ -138,7 +186,7 @@ class Polygon {
         // incidentally, this is also the easiest start to the readLayers() function
         // just below.
 
-        cands = {
+        let cands = {
             x: true,
             y: true,
             z: true,
@@ -146,7 +194,7 @@ class Polygon {
 
         for (let item of this.coordinates)
         {
-            max_abs = Math.max(Math.abs(item.x), Math.abs(item.y), Math.abs(item.z));
+            let max_abs = Math.max(Math.abs(item.x), Math.abs(item.y), Math.abs(item.z));
             if (Math.abs(item.x) != max_abs) {
                 cands.x = false;
             }
@@ -173,14 +221,14 @@ class Polygon {
 
     readLayers()
     {
-        local_outerlayer = this.readOuterLayer();
-        local_n = this.coordinates[0][local_outerlayer];
+        let local_outerlayer = this.readOuterLayer();
+        let local_n = this.coordinates[0][local_outerlayer];
 
         // We can consider the positive faces to be layer "1" and the negative faces to be layer "n"
         // Using this formula
-        min_x = local_n;
-        min_y = local_n;
-        min_z = local_n;
+        let min_x = local_n;
+        let min_y = local_n;
+        let min_z = local_n;
         for (let item of this.coordinates)
         {
             if (item.x < min_x) {

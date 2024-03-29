@@ -58,10 +58,20 @@ class CubeData {
 
     readVisibility()
     {
+        for (let item of Object.keys(this.outerface_info)) {
+            this.outerface_info[item] = true;
+        }
     }
 
     readScaledCoords()
     {
+        for (let poly of this.polygons) {
+            for (let coord of poly.coordinates)
+            {
+                coord.canv_x = -1000;
+                coord.canv_y = -1000;
+            }
+        }
     }
 }
 

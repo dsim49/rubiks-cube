@@ -22,6 +22,7 @@ def process_json():
         if testing:
             return curr_state
         else:
+            pass
             # new_state = curr_state.copy()
             # new_state_X = new_state['posX']
             # new_state_Y = new_state['posY']

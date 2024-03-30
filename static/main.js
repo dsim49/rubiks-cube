@@ -1,5 +1,3 @@
-import "numeric";
-
 // Make all text un-selectable of the following types of tags:
 for (let tagname of ["p", "h1", "h2", "h3", "h4", "h5", "h6"])
 {
@@ -17,9 +15,9 @@ function mat_mult(A, vec)
 
     // Note: also, the inner arrays of the matrix are columns.
 
-    col1 = A[0].map((e) => (e*vec[0]));
-    col2 = A[1].map((e) => (e*vec[1]));
-    col3 = A[2].map((e) => (e*vec[2]));
+    let col1 = A[0].map((e) => (e*vec[0]));
+    let col2 = A[1].map((e) => (e*vec[1]));
+    let col3 = A[2].map((e) => (e*vec[2]));
 
     return col1.map((e,i) => (e+col2[i]+col3[i]));
 }
@@ -27,8 +25,10 @@ function mat_mult(A, vec)
 function dot(a, b)
 {
     // Note: a and b must be lists of the same size.
-    sum = 0;
+    let sum = 0;
     a.forEach((e, i) => {sum += e*b[i];});
+
+    return sum;
 }
 
 // Global variables that are not constant
@@ -71,9 +71,9 @@ class CubeData {
         }
 
         // Orientation data
-        this.theta = NaN;
-        this.phi = NaN;
-        this.gamma = NaN;
+        this.theta = 45;
+        this.phi = 30;
+        this.gamma = 0;
         // These are COLUMNS (the matrix would look transposed to this if written on paper)
         // Why? Because it makes more sense to me. Lmk if confusing to you.
         this.V = [
@@ -92,6 +92,12 @@ class CubeData {
         // This is the zoom factor for perspective mode. It is not a zoom, but a distance.
         // Note: the initial value will have to be found by trial and error.
         this.rho = 2*n;
+
+        // Read the visibility of each face
+        this.readVisibility();
+
+        // Read the scaled coordinates
+        this.readScaledCoords();
     }
 
     // In addition, add "layer" objects between which the various polygon objects will be rearranged every time a move is made.
@@ -111,9 +117,9 @@ class CubeData {
     {
         for (let item of Object.keys(this.outerface_info)) {
             let obs_vec = {
-                x: Math.cos(this.phi)*Math.cos(this.theta),
-                y: Math.cos(this.phi)*Math.sin(this.theta),
-                z: Math.sin(this.phi),
+                x: Math.cos(this.phi*Math.PI/180)*Math.cos(this.theta*Math.PI/180),
+                y: Math.cos(this.phi*Math.PI/180)*Math.sin(this.theta*Math.PI/180),
+                z: Math.sin(this.phi*Math.PI/180),
             }
             let normal_vec = {
                 x: 0,
@@ -131,7 +137,8 @@ class CubeData {
             }
 
             // Dot product
-            dp = (obs_vec.x*normal_vec.x + obs_vec.y*normal_vec.y + obs_vec.z*normal_vec.z);
+            let dp = dot(Object.values(obs_vec), Object.values(normal_vec));
+
             if (dp > 0) {
                 this.outerface_info[item] = true;
             }
@@ -144,20 +151,58 @@ class CubeData {
     readScaledCoords()
     {
         // Get the inverse of V, useful soon
-        V_inv = numeric.inv(this.V);
+        let V_inv = math.inv(this.V);
                 
         // Set the scale factor. Since this function is for ISOMETRIC mode, there is no concept
         // of "distance" of the camera from the origin.
-        cmp_scale = this.base_scale*this.zoom;
+        let cmp_scale = this.base_scale*this.zoom;
 
         // Compute C (our location in local coords) and xloc (the global x-axis in local coords)
-        C = mat_mult(Vinv, [0,0,-1]);
-        xloc = mat_mult(Vinv, [1,0,0]);
+        // And normalize them for good measure
+        let C = mat_mult(V_inv, [0,0,-1]);
+        let Cmag = math.norm(C, 2);
+        C = C.map((e) => (e/Cmag));
+
+        let xloc = mat_mult(V_inv, [1,0,0]);
+        let xlocmag = math.norm(xloc, 2);
+        xloc = xloc.map((e) => (e/xlocmag));
+
+        // beta2: project local positive z axis onto plane of screen
+        // Also normalize
+        let kh = [0, 0, 1];
+        let temp_dot = dot(kh, C);
+        let temp = C.map((e) => (e*temp_dot));
+        let beta2 = kh.map((e,i) => (e - temp[i]));
+        let beta2mag = math.norm(beta2, 2);
+        beta2 = beta2.map((e) => (e/beta2mag));
 
         for (let poly of this.polygons) {
             for (let coord of poly.coordinates)
             {
-                
+                // beta1: project coordinate vector (P) onto plane of screen
+                // Also normalize
+                let P = [coord.x, coord.y, coord.z];
+                let ll = dot(P, C);
+                temp = C.map((e) => (e*ll));
+                let beta1 = P.map((e,i) => (e - temp[i]));
+                let beta1mag = math.norm(beta1, 2);
+                beta1 = beta1.map((e) => (e/beta1mag));
+
+                // Get angle from beta1 to beta2
+                let ab1b2 = Math.acos(dot(beta1, beta2))*180/Math.PI;
+
+                // Get projection angle
+                let a = NaN;
+                if (dot(beta1, xloc) > 0) {
+                    a = -90 + this.gamma + ab1b2;
+                }
+                else {
+                    a = -90 + this.gamma - ab1b2;
+                }
+
+                // Projection length: we already calculated it back at ll
+                coord.canv_x = ll*Math.cos(a*Math.PI/180)*cmp_scale;
+                coord.canv_y = ll*Math.sin(a*Math.PI/180)*cmp_scale;
             }
         }
     }
@@ -220,6 +265,31 @@ class Polygon {
                 this.coordinates.push(new Coordinate(coords['x'], coords['y'], coords['z']));
             }
         }
+
+        // Fill color
+        switch (face_string) {
+            case "px":
+                this.fill_color = "white";
+                break;
+            case "py":
+                this.fill_color = "red";
+                break;
+            case "pz":
+                this.fill_color = "blue";
+                break;
+            case "nx":
+                this.fill_color = "yellow";
+                break;
+            case "ny":
+                this.fill_color = "orange";
+                break;
+            case "nz":
+                this.fill_color = "green";
+                break;
+        }
+
+        // Read the layer attributes from the polygon coordinate values
+        this.readLayers();
     }
 
     readOuterLayer()
@@ -320,6 +390,7 @@ class CommandData {
         this.type = type;
         this.movement_amountX = xmov;
         this.movement_amountY = ymov;
+        this.sensitivity = globals.sens;
     }
 }
 
@@ -420,7 +491,7 @@ function generate_cmd(event)
     });
 
     // Draw the returned data from the command call
-    drawCube();
+    draw_cube();
 
     // This is done after everything else in generate_cmd
     globals.prevX = event.clientX;
@@ -436,17 +507,38 @@ async function wait_30hz()
     setTimeout(() => {globals.glob_waiting = -1;}, 1000/60);
 }
 
-function drawCube()
+function draw_cube()
 {
-    // Get real coordinates
-    realX = (canv.width / 2) + cube_data.posX;
-    realY = (canv.height / 2) + cube_data.posY;
+    // // Get real coordinates
+    // realX = (canv.width / 2) + cube_data.posX;
+    // realY = (canv.height / 2) + cube_data.posY;
 
-    // Draw a "cube"
-    ctx.clearRect(0, 0, canv.width, canv.height);
-    ctx.beginPath();
-    ctx.arc(realX, realY, 10, 0, Math.PI * 2);
-    ctx.fillStyle = "#0095DD";
-    ctx.fill();
-    ctx.closePath();
+    // // Draw a "cube"
+    // ctx.clearRect(0, 0, canv.width, canv.height);
+    // ctx.beginPath();
+    // ctx.arc(realX, realY, 10, 0, Math.PI * 2);
+    // ctx.fillStyle = "#0095DD";
+    // ctx.fill();
+    // ctx.closePath();
+
+    // Get the translational scaling factors for x and y
+    xshift = (canv.width / 2);
+    yshift = (canv.height / 2);
+
+    // Draw a polygon to the canvas for each polygon, using the Coordinate canv_x and canv_y.
+    for (let poly of cube_data.polygons) {
+        c0 = poly.coordinates[0];
+        c1 = poly.coordinates[1];
+        c2 = poly.coordinates[2];
+        c3 = poly.coordinates[3];
+
+        ctx.fillStyle = poly.fill_color;
+        ctx.beginPath();
+        ctx.moveTo(c0.canv_x+xshift, c0.canv_y+yshift);
+        ctx.lineTo(c1.canv_x+xshift, c1.canv_y+yshift);
+        ctx.lineTo(c3.canv_x+xshift, c3.canv_y+yshift);
+        ctx.lineTo(c2.canv_x+xshift, c2.canv_y+yshift);
+        ctx.closePath();
+        ctx.fill();
+    }
 }

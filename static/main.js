@@ -1,3 +1,5 @@
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 // Make all text un-selectable of the following types of tags:
 for (let tagname of ["p", "h1", "h2", "h3", "h4", "h5", "h6"])
 {
@@ -8,20 +10,6 @@ for (let tagname of ["p", "h1", "h2", "h3", "h4", "h5", "h6"])
 }
 
 // Functions
-function mat_mult(A, vec)
-{
-    // Takes a 3x3 matrix A and 3x1 vectore vec.
-    // If the sizes are different, your excuses are your own.
-
-    // Note: also, the inner arrays of the matrix are columns.
-
-    let col1 = A[0].map((e) => (e*vec[0]));
-    let col2 = A[1].map((e) => (e*vec[1]));
-    let col3 = A[2].map((e) => (e*vec[2]));
-
-    return col1.map((e,i) => (e+col2[i]+col3[i]));
-}
-
 function dot(a, b)
 {
     // Note: a and b must be lists of the same size.
@@ -29,6 +17,20 @@ function dot(a, b)
     a.forEach((e, i) => {sum += e*b[i];});
 
     return sum;
+}
+
+function mat_mult(A, vec)
+{
+    // Takes a 3x3 matrix A and 3x1 vectore vec.
+    // If the sizes are different, your excuses are your own.
+
+    // Note: also, the inner arrays of the matrix are columns.
+
+    let e1 = dot(A[0], vec);
+    let e2 = dot(A[1], vec);
+    let e3 = dot(A[2], vec);
+
+    return [e1, e2, e3];
 }
 
 // Global variables that are not constant
@@ -77,9 +79,9 @@ class CubeData {
         // These are COLUMNS (the matrix would look transposed to this if written on paper)
         // Why? Because it makes more sense to me. Lmk if confusing to you.
         this.V = [
-            [-0.7071, 0.35355 , -0.61236],
-            [0.7071 , 0.35355 , -0.61236],
-            [0      , -0.86602, -0.5    ],
+            [-0.7071, 0.7071, 0],
+            [0.35355, 0.35355, -0.86602],
+            [-0.61236, -0.61236, -0.5]
         ]
 
         // This is the "zoom" factor for isometric mode
@@ -182,11 +184,11 @@ class CubeData {
                 // beta1: project coordinate vector (P) onto plane of screen
                 // Also normalize
                 let P = [coord.x, coord.y, coord.z];
-                let ll = dot(P, C);
-                temp = C.map((e) => (e*ll));
+                temp_dot = dot(P, C);
+                temp = C.map((e) => (e*temp_dot));
                 let beta1 = P.map((e,i) => (e - temp[i]));
-                let beta1mag = math.norm(beta1, 2);
-                beta1 = beta1.map((e) => (e/beta1mag));
+                let ll = math.norm(beta1, 2);
+                beta1 = beta1.map((e) => (e/ll));
 
                 // Get angle from beta1 to beta2
                 let ab1b2 = Math.acos(dot(beta1, beta2))*180/Math.PI;
@@ -507,8 +509,9 @@ async function wait_30hz()
     setTimeout(() => {globals.glob_waiting = -1;}, 1000/60);
 }
 
-function draw_cube()
+async function draw_cube()
 {
+    ctx.clearRect(0, 0, canv.width, canv.height);
     // // Get real coordinates
     // realX = (canv.width / 2) + cube_data.posX;
     // realY = (canv.height / 2) + cube_data.posY;
@@ -527,18 +530,27 @@ function draw_cube()
 
     // Draw a polygon to the canvas for each polygon, using the Coordinate canv_x and canv_y.
     for (let poly of cube_data.polygons) {
-        c0 = poly.coordinates[0];
-        c1 = poly.coordinates[1];
-        c2 = poly.coordinates[2];
-        c3 = poly.coordinates[3];
+        if (cube_data.outerface_info[poly.outer_face] == true) {
+            c0 = poly.coordinates[0];
+            c1 = poly.coordinates[1];
+            c2 = poly.coordinates[2];
+            c3 = poly.coordinates[3];
 
-        ctx.fillStyle = poly.fill_color;
-        ctx.beginPath();
-        ctx.moveTo(c0.canv_x+xshift, c0.canv_y+yshift);
-        ctx.lineTo(c1.canv_x+xshift, c1.canv_y+yshift);
-        ctx.lineTo(c3.canv_x+xshift, c3.canv_y+yshift);
-        ctx.lineTo(c2.canv_x+xshift, c2.canv_y+yshift);
-        ctx.closePath();
-        ctx.fill();
+            ctx.fillStyle = poly.fill_color;
+            ctx.strokeStyle = "#000000";
+            ctx.beginPath();
+            ctx.moveTo(c0.canv_x+xshift, c0.canv_y+yshift);
+            ctx.lineTo(c1.canv_x+xshift, c1.canv_y+yshift);
+            ctx.stroke();
+            ctx.lineTo(c2.canv_x+xshift, c2.canv_y+yshift);
+            ctx.stroke();
+            ctx.lineTo(c3.canv_x+xshift, c3.canv_y+yshift);
+            ctx.stroke();
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            await new Promise(r => setTimeout(r, 500));
+        }
     }
 }

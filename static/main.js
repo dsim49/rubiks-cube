@@ -1,3 +1,5 @@
+import "numeric";
+
 // Make all text un-selectable of the following types of tags:
 for (let tagname of ["p", "h1", "h2", "h3", "h4", "h5", "h6"])
 {
@@ -5,6 +7,28 @@ for (let tagname of ["p", "h1", "h2", "h3", "h4", "h5", "h6"])
     {
         e.style.userSelect = "none";
     }
+}
+
+// Functions
+function mat_mult(A, vec)
+{
+    // Takes a 3x3 matrix A and 3x1 vectore vec.
+    // If the sizes are different, your excuses are your own.
+
+    // Note: also, the inner arrays of the matrix are columns.
+
+    col1 = A[0].map((e) => (e*vec[0]));
+    col2 = A[1].map((e) => (e*vec[1]));
+    col3 = A[2].map((e) => (e*vec[2]));
+
+    return col1.map((e,i) => (e+col2[i]+col3[i]));
+}
+
+function dot(a, b)
+{
+    // Note: a and b must be lists of the same size.
+    sum = 0;
+    a.forEach((e, i) => {sum += e*b[i];});
 }
 
 // Global variables that are not constant
@@ -17,8 +41,12 @@ class Globals {
         // Previous positions here
         this.prevX = NaN;
         this.prevY = NaN;
+
+        // Misc
+        this.sens = 0.25;
     }
 }
+let globals = new Globals();
 
 class CubeData {
     constructor(n) {
@@ -43,9 +71,16 @@ class CubeData {
         }
 
         // Orientation data
-        this.theta = 45;
-        this.phi = 30;
-        this.gamma = 0;
+        this.theta = NaN;
+        this.phi = NaN;
+        this.gamma = NaN;
+        // These are COLUMNS (the matrix would look transposed to this if written on paper)
+        // Why? Because it makes more sense to me. Lmk if confusing to you.
+        this.V = [
+            [-0.7071, 0.35355 , -0.61236],
+            [0.7071 , 0.35355 , -0.61236],
+            [0      , -0.86602, -0.5    ],
+        ]
 
         // This is the "zoom" factor for isometric mode
         // Note: base is 600 wide for a side-on isometric view
@@ -108,11 +143,21 @@ class CubeData {
 
     readScaledCoords()
     {
+        // Get the inverse of V, useful soon
+        V_inv = numeric.inv(this.V);
+                
+        // Set the scale factor. Since this function is for ISOMETRIC mode, there is no concept
+        // of "distance" of the camera from the origin.
+        cmp_scale = this.base_scale*this.zoom;
+
+        // Compute C (our location in local coords) and xloc (the global x-axis in local coords)
+        C = mat_mult(Vinv, [0,0,-1]);
+        xloc = mat_mult(Vinv, [1,0,0]);
+
         for (let poly of this.polygons) {
             for (let coord of poly.coordinates)
             {
-                coord.canv_x = -1000;
-                coord.canv_y = -1000;
+                
             }
         }
     }
@@ -224,6 +269,20 @@ class Polygon {
         let local_outerlayer = this.readOuterLayer();
         let local_n = this.coordinates[0][local_outerlayer];
 
+        // NOTE: this commented out code is needed in the C++ eventual backend, but
+        // not in the javascript. Technically the only purpose of even including these methods
+        // in the javascript at all, is to help initialize the cube.
+
+        // // Let the program know which outer_face object this polygon belongs to
+        // let pfx = "p";
+        // if (local_n < 0) {
+        //     pfx = "n";
+        // }
+        // this.outer_face = pfx + local_outerlayer;
+
+        // Make local_n positive for use in the next algorithm
+        local_n = Math.abs(local_n);
+
         // We can consider the positive faces to be layer "1" and the negative faces to be layer "n"
         // Using this formula
         let min_x = local_n;
@@ -279,7 +338,6 @@ canv.addEventListener("mousedown", switch_mouse_id);
 document.addEventListener("mouseup", switch_mouse_id); // We want it to register a mouseup ANYWHERE on the screen
 canv.addEventListener("mousemove", mousemove_function);
 
-let globals = new Globals();
 let cube_data = new CubeData(3);
 
 async function switch_mouse_id(event)

@@ -88,7 +88,7 @@ class CubeData {
         // Note: base is 600 wide for a side-on isometric view
         // This is equivalent to 100 pixels per unit length (radially).
         // Convention in this code is that one square is 2x2 (in terms of unit length).
-        this.base_scale = Math.floor(300/n);
+        this.base_scale = Math.floor(100/n);
         this.zoom = 1;
 
         // This is the zoom factor for perspective mode. It is not a zoom, but a distance.
@@ -191,7 +191,15 @@ class CubeData {
                 beta1 = beta1.map((e) => (e/ll));
 
                 // Get angle from beta1 to beta2
-                let ab1b2 = Math.acos(dot(beta1, beta2))*180/Math.PI;
+                // Next, make sure it is in range.
+                temp = dot(beta1, beta2)
+                if (temp <= -1) {
+                    temp = -1;
+                }
+                if (temp >= 1) {
+                    temp = 1;
+                }
+                let ab1b2 = Math.acos(temp)*180/Math.PI;
 
                 // Get projection angle
                 let a = NaN;
@@ -542,9 +550,9 @@ async function draw_cube()
             ctx.moveTo(c0.canv_x+xshift, c0.canv_y+yshift);
             ctx.lineTo(c1.canv_x+xshift, c1.canv_y+yshift);
             ctx.stroke();
-            ctx.lineTo(c2.canv_x+xshift, c2.canv_y+yshift);
-            ctx.stroke();
             ctx.lineTo(c3.canv_x+xshift, c3.canv_y+yshift);
+            ctx.stroke();
+            ctx.lineTo(c2.canv_x+xshift, c2.canv_y+yshift);
             ctx.stroke();
             ctx.closePath();
             ctx.stroke();

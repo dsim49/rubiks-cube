@@ -28,7 +28,7 @@ async function point(P)
                 let beta1mag = math.norm(beta1, 2);
                 beta1 = beta1.map((e) => (e/beta1mag));
 
-    // Get angle from beta1 to beta2
+    // Get angle from beta1 to beta
                 let ab1b2 = Math.acos(dot(beta1, beta2))*180/Math.PI;
 
     // Get projectin angle

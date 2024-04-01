@@ -421,6 +421,9 @@ canv.addEventListener("mousemove", mousemove_function);
 
 let cube_data = new CubeData(3);
 
+// Draw the cube initially
+draw_cube();
+
 async function switch_mouse_id(event)
 {
     if (event.type == "mousedown")
@@ -450,6 +453,9 @@ function generate_cmd(event)
     // The first debug box is the event type
     debug_blocks[0].getElementsByTagName("p")[0].textContent = event.type;
 
+    let movement_amountX = 0;
+    let movement_amountY = 0;
+
     // The second debug box is the difference in coordinates calculated by subraction
     if (isNaN(globals.prevX))
     {
@@ -467,7 +473,7 @@ function generate_cmd(event)
     debug_blocks[1].getElementsByTagName("p")[1].textContent = "Y: " + movement_amountY;
 
     // Form the command (use JSON format)
-    the_cmd = new CommandData(event.type, movement_amountX, movement_amountY);
+    let the_cmd = new CommandData(event.type, movement_amountX, movement_amountY);
 
     // Call the command (use JSON format)
     fetch('/process_json', {
@@ -517,7 +523,7 @@ async function wait_30hz()
     setTimeout(() => {globals.glob_waiting = -1;}, 1000/60);
 }
 
-async function draw_cube()
+function draw_cube()
 {
     ctx.clearRect(0, 0, canv.width, canv.height);
     // // Get real coordinates
@@ -533,16 +539,16 @@ async function draw_cube()
     // ctx.closePath();
 
     // Get the translational scaling factors for x and y
-    xshift = (canv.width / 2);
-    yshift = (canv.height / 2);
+    let xshift = (canv.width / 2);
+    let yshift = (canv.height / 2);
 
     // Draw a polygon to the canvas for each polygon, using the Coordinate canv_x and canv_y.
     for (let poly of cube_data.polygons) {
         if (cube_data.outerface_info[poly.outer_face] == true) {
-            c0 = poly.coordinates[0];
-            c1 = poly.coordinates[1];
-            c2 = poly.coordinates[2];
-            c3 = poly.coordinates[3];
+            let c0 = poly.coordinates[0];
+            let c1 = poly.coordinates[1];
+            let c2 = poly.coordinates[2];
+            let c3 = poly.coordinates[3];
 
             ctx.fillStyle = poly.fill_color;
             ctx.strokeStyle = "#000000";
@@ -557,8 +563,109 @@ async function draw_cube()
             ctx.closePath();
             ctx.stroke();
             ctx.fill();
-
-            await new Promise(r => setTimeout(r, 500));
         }
     }
+}
+
+// Debug
+Polygon.prototype.l_readScaledCoords = function()
+{
+    // Get the inverse of V, useful soon
+    let V_inv = math.inv(cube_data.V);
+            
+    // Set the scale factor. Since this function is for ISOMETRIC mode, there is no concept
+    // of "distance" of the camera from the origin.
+    let cmp_scale = cube_data.base_scale*cube_data.zoom;
+
+    // Compute C (our location in local coords) and xloc (the global x-axis in local coords)
+    // And normalize them for good measure
+    let C = mat_mult(V_inv, [0,0,-1]);
+    let Cmag = math.norm(C, 2);
+    C = C.map((e) => (e/Cmag));
+
+    let xloc = mat_mult(V_inv, [1,0,0]);
+    let xlocmag = math.norm(xloc, 2);
+    xloc = xloc.map((e) => (e/xlocmag));
+
+    // beta2: project local positive z axis onto plane of screen
+    // Also normalize
+    let kh = [0, 0, 1];
+    let temp_dot = dot(kh, C);
+    let temp = C.map((e) => (e*temp_dot));
+    let beta2 = kh.map((e,i) => (e - temp[i]));
+    let beta2mag = math.norm(beta2, 2);
+    beta2 = beta2.map((e) => (e/beta2mag));
+
+    for (let i = 0; i < 1; i++) {
+        for (let coord of this.coordinates)
+        {
+            // beta1: project coordinate vector (P) onto plane of screen
+            // Also normalize
+            let P = [coord.x, coord.y, coord.z];
+            let ll = dot(P, C);
+            temp = C.map((e) => (e*ll));
+            let beta1 = P.map((e,i) => (e - temp[i]));
+            let beta1mag = math.norm(beta1, 2);
+            beta1 = beta1.map((e) => (e/beta1mag));
+
+            // Get angle from beta1 to beta2
+            let ab1b2 = Math.acos(dot(beta1, beta2))*180/Math.PI;
+
+            // Get projection angle
+            let a = NaN;
+            if (dot(beta1, xloc) > 0) {
+                a = -90 + ab1b2;
+            }
+            else {
+                a = -90 - ab1b2;
+            }
+
+            // Projection length: we already calculated it back at ll
+            coord.canv_x = ll*Math.cos(a*Math.PI/180)*cmp_scale;
+            coord.canv_y = ll*Math.sin(a*Math.PI/180)*cmp_scale;
+        }
+    }
+}
+function read_V_from_angles(cdata)
+{
+    Rx = [
+        [1, 0, 0],
+        [0, Math.cos(cdata.phi*Math.PI/180), -1*Math.sin(cdata.phi*Math.PI/180)],
+        [0, Math.sin(cdata.phi*Math.PI/180), Math.cos(cdata.phi*Math.PI/180)],
+    ]
+    Ry = [
+        [Math.cos(cdata.theta*Math.PI/180), 0, Math.sin(cdata.theta*Math.PI/180)],
+        [0, 1, 0],
+        [-1*Math.sin(cdata.theta*Math.PI/180), 0, Math.cos(cdata.theta*Math.PI/180)],
+    ]
+    Rz = [
+        [Math.cos(cdata.gamma*Math.PI/180), -1*Math.sin(cdata.gamma*Math.PI/180), 0],
+        [Math.sin(cdata.gamma*Math.PI/180), Math.cos(cdata.gamma*Math.PI/180), 0],
+        [0, 0, 1],
+    ]
+    // modI for "modified I", basically the frame of the camera as opposed to the world coordinates.
+    modI = [
+        [0, 1, 0],
+        [0, 0, -1],
+        [-1, 0, 0],
+    ]
+
+    console.log("Ry:");
+    console.log(Ry);
+    console.log("Rx:");
+    console.log(Rx);
+    console.log("Rz:");
+    console.log(Rz);
+
+    let temp = math.multiply(Ry, modI);
+    console.log(temp);
+    temp = math.multiply(Rx, temp);
+    console.log(temp);
+    cdata.V = math.multiply(Rz, temp);
+}
+function update_cube(cube_data)
+{
+    cube_data.readVisibility();
+    cube_data.readScaledCoords();
+    draw_cube();
 }

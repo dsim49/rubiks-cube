@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Muted Gray Website</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='main.css') }}">
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <script src="https://unpkg.com/mathjs/lib/browser/math.js"></script>
 </head>
 <body>
@@ -41,6 +42,7 @@
     <footer>
         <p>&copy; 2024 Muted Gray Website. All rights reserved.</p>
     </footer>
+    <script src="{{ url_for('static', filename='debug.js') }}"></script>
     <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>

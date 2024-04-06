@@ -3,6 +3,20 @@
 
 #include "misc.cpp"
 
+#define pass void(0)
+
+class ReadWriteJson
+{
+    void read_json(std::string json_string)
+    {
+        pass;
+    }
+    std::string write_json()
+    {
+        pass;
+    }
+};
+
 int main(int argc, char *argv[])
 {
     if (argc != 3)

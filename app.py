@@ -43,7 +43,7 @@ def process_json():
         curr_state_str = json.dumps(curr_state)
         cmd_str = json.dumps(cmd)
         print(curr_state_str)
-        args = '.\src\main.exe '+curr_state_str+' '+cmd_str
+        args = ['.\src\main.exe ', curr_state_str, cmd_str]
         print("Length: " + str(len(args)))
         completed_process = subprocess.run(args, capture_output=True)
         output = completed_process.stdout.decode('utf-8')

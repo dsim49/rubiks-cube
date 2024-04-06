@@ -1,5 +1,8 @@
 from flask import Flask, render_template, request, jsonify
 
+import subprocess
+import json
+
 app = Flask(__name__)
 
 # Serve index.html from the templates folder
@@ -16,13 +19,6 @@ def process_json():
     
     # Return the new state (use the command and original state to calculate this)
     def update_state(curr_state, cmd):
-        
-        testing = True
-
-        if testing:
-            return curr_state
-        else:
-            pass
             # new_state = curr_state.copy()
             # new_state_X = new_state['posX']
             # new_state_Y = new_state['posY']
@@ -44,6 +40,17 @@ def process_json():
             # new_state['posX'] = new_state_X
             # new_state['posY'] = new_state_Y
             # return new_state
+        curr_state_str = json.dumps(curr_state)
+        cmd_str = json.dumps(cmd)
+        print(curr_state_str)
+        args = '.\src\main.exe '+curr_state_str+' '+cmd_str
+        print("Length: " + str(len(args)))
+        completed_process = subprocess.run(args, capture_output=True)
+        output = completed_process.stdout.decode('utf-8')
+        error = completed_process.stderr.decode('utf-8')
+        print(output)
+        print(error)
+        return curr_state
 
         
 

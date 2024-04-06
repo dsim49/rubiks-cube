@@ -520,7 +520,7 @@ function generate_cmd(event)
 async function wait_30hz() 
 {
     globals.glob_waiting = 1;
-    setTimeout(() => {globals.glob_waiting = -1;}, 1000/60);
+    setTimeout(() => {globals.glob_waiting = -1;}, 1000/30);
 }
 
 function draw_cube()
